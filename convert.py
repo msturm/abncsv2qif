@@ -8,14 +8,14 @@ parser.add_argument("filename", help='csv filename to convert')
 args = parser.parse_args()
 
 
-def printQifHeader():
+def print_qif_header():
     print "!Type:Bank"
 
-def fixDate(rawdate):
+def fix_date(rawdate):
     return datetime.datetime.strptime(rawdate, "%Y%m%d").strftime("%d/%m/%Y")
 
-def printQifStmt(date, amount, desc, memo=None):
-    number = ""
+def format_name(desc):
+    name = ""
     if desc.startswith("BEA"):
         name = desc[33:66].split(",")[0]
     elif desc.startswith("GEA"):
@@ -38,10 +38,14 @@ def printQifStmt(date, amount, desc, memo=None):
         name = desc[14:33]
         if name.strip() == "":
             name = desc[33:66]
+    return name;
 
+def print_qif_stmt(date, amount, desc, memo=None):
+    number = ""
+    name = format_name(desc)
     if memo == None:
         memo = desc[99:166]
-    print "D{}".format(fixDate(date))
+    print "D{}".format(fix_date(date))
     print "T{}".format(amount).replace(",", ".")
     print "P{}".format(name)
     if memo.strip() != "":
@@ -52,6 +56,6 @@ def printQifStmt(date, amount, desc, memo=None):
 
 with open(args.filename, 'rb') as csvfile:
     csvreader = csv.reader(csvfile, delimiter="\t")
-    printQifHeader()
+    print_qif_header()
     for row in csvreader:
-        printQifStmt(row[2], row[6], row[7]) 
+        print_qif_stmt(row[2], row[6], row[7]) 
