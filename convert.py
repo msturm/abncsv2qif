@@ -33,7 +33,10 @@ def format_name(desc):
         if name.strip() == "":
             name = desc[33:66].strip()
     elif desc.startswith("/TRTP/SEPA"):
-        name = desc[desc.index('NAME/ ') + 6:desc.index('/REMI/')]
+        if '/REMI/' in desc:
+            name = desc[desc.index('/NAME/') + 6:desc.index('/REMI/')]
+        else:
+            name = desc[desc.index('/NAME/') + 6:desc.index('/EREF/')]
     else:
         name = desc[14:33]
         if name.strip() == "":
@@ -57,5 +60,8 @@ def print_qif_stmt(date, amount, desc, memo=None):
 with open(args.filename, 'rb') as csvfile:
     csvreader = csv.reader(csvfile, delimiter="\t")
     print_qif_header()
+    counter = 1
     for row in csvreader:
+        #print "processing line: " + str(counter)
+        counter += 1
         print_qif_stmt(row[2], row[6], row[7]) 
