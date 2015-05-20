@@ -21,7 +21,7 @@ def parse_description(desc):
         result = parse_sepa(desc)
     else:
         result['name'] = desc[0:33].split(",")[0].strip()
-        result['description'] = desc[33:] if len(desc) >= 33 else ''
+        result['description'] = desc[33:].strip() if len(desc) >= 33 else ''
     return result
 
 
