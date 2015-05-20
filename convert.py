@@ -59,36 +59,6 @@ def remove_65_char_space(desc):
         return desc[0:63] + remove_65_char_space(desc[64:])
 
 
-def format_name(desc):
-    name = ""
-    if desc.startswith("BEA"):
-        name = desc[33:66].split(",")[0]
-    elif desc.startswith("GEA"):
-        name = "Geldautomaat " + desc[33:66]
-        number = 'TRANSFER'
-    elif desc.startswith("CHIP"):
-        name = "Chipknip " + desc[33:66]
-        number = 'TRANSFER'
-    elif desc.startswith("GIRO"):
-        if desc.startswith("GIRO    "):
-            name = desc.replace('    ', '  ', 1)[14:31]
-        else:
-            name = desc[14:33]
-
-        if name.strip() == "":
-            name = desc[33:66].strip()
-    elif desc.startswith("/TRTP/SEPA"):
-        if '/REMI/' in desc:
-            name = desc[desc.index('/NAME/') + 6:desc.index('/REMI/')]
-        else:
-            name = desc[desc.index('/NAME/') + 6:desc.index('/EREF/')]
-    else:
-        name = desc[14:33]
-        if name.strip() == "":
-            name = desc[33:66]
-    return name;
-
-
 def print_qif_header():
     return "!Type:Bank"
 
@@ -123,14 +93,14 @@ if __name__ == '__main__':
     parser.add_argument("filename", help='csv filename to convert')
     args = parser.parse_args()
 
-    result = ""
+    totalresult = ""
     with open(args.filename, 'rb') as csvfile:
         csvreader = csv.reader(csvfile, delimiter="\t")
-        result = print_qif_header()
+        totalresult = print_qif_header()
         counter = 1
         for row in parse_file(csvreader):
             #print "processing line: " + str(counter)
             counter += 1
-            result += print_qif_stmt(row)
+            totalresult += print_qif_stmt(row)
 
-    print result
+    print totalresult
