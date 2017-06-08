@@ -3,6 +3,7 @@ import csv
 import argparse
 import datetime
 import re
+import sys
 
 
 def fix_date(rawdate):
@@ -17,7 +18,7 @@ def parse_description(desc):
     elif desc.startswith("GEA"):
         result['name'] = "Geldautomaat " + desc[33:66].split(",")[0]
         result['description'] = ''
-    elif desc.startswith("/TRTP"):
+    elif desc.startswith("/TRTP") or desc.startswith("SEPA"):
         result = parse_sepa(desc)
     else:
         result['name'] = desc[0:33].split(",")[0].strip()
@@ -28,24 +29,46 @@ def parse_description(desc):
 def parse_sepa(desc):
     desc = remove_65_char_space(desc)
     result = {}
+
+    if desc is None:
+        print "Error while parsing file"
+        return None
+
     if desc.startswith("/TRTP/SEPA OVERBOEKING") \
             or desc.startswith("/TRTP/SEPA Incasso algemeen doorlopend") \
-            or desc.startswith("/TRTP/iDEAL"):
+            or desc.startswith("/TRTP/iDEAL") \
+            or desc.startswith("/TRTP/Acceptgirobetaling"):
         result['name'] = re.findall(" ?/NAME/ ?(.*?)/", desc)[0]
         if desc.startswith("/TRTP/SEPA Incasso algemeen doorlopend"):
-            description_regex = re.findall("/REMI/(.*?)/IBAN", desc)
+            description_regex_result = re.findall("/REMI/(.*?)/IBAN", desc)
         else:
-            description_regex = re.findall("/REMI/(.*?)/", desc)
+            description_regex_result = re.findall("/REMI/(.*?)/", desc)
 
-        if len(description_regex) > 0:
-            result['description'] = description_regex[0]
+        if len(description_regex_result) > 0:
+            result['description'] = description_regex_result[0]
         else:
             result['description'] = ""
+    elif desc.startswith("SEPA Overboeking") or desc.startswith("SEPA Periodieke overb."):
+        if "Omschrijving:" in desc:
+            result['name'] = re.findall(".*Naam: (.*) Omschrijving:", desc)[0].strip()
+            result['description'] = remove_33_char_space(re.findall(".*(Omschrijving: .*)", desc)[0])[14:].strip()
+        else:
+            result['name'] = re.findall(".*Naam: (.*)", desc)[0].strip()
+            result['description'] = ''
     else:
         print "Error while parsing " + desc
         result['name'] = ''
         result['description'] = ''
     return result
+
+
+def remove_33_char_space(desc):
+    if len(desc) < 33:
+        return desc
+    elif desc[32] == ' ':
+        return desc[0:32] + remove_33_char_space(desc[33:])
+    else:
+        return desc
 
 
 def remove_65_char_space(desc):
@@ -57,10 +80,12 @@ def remove_65_char_space(desc):
         return desc[0:64] + remove_65_char_space(desc[65:])
     elif desc[63] == ' ':
         return desc[0:63] + remove_65_char_space(desc[64:])
+    else:
+        return desc
 
 
 def print_qif_header():
-    return "!Type:Bank"
+    return "!Type:Bank\n"
 
 
 def print_qif_stmt(data):
@@ -85,11 +110,14 @@ def parse_file(csvreader):
     result = []
     for row in csvreader:
         desc_line_result = parse_description(row[7])
+        if desc_line_result is None:
+            print "error in line {}".format(row)
+            sys.exit()
         result.append({'date': row[2], 'amount': row[6], 'description': desc_line_result['description'], 'name': desc_line_result['name']})
     return result
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Convert csv to ofx')
+    parser = argparse.ArgumentParser(description='Convert csv to qif')
     parser.add_argument("filename", help='csv filename to convert')
     args = parser.parse_args()
 
