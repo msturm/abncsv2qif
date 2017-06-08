@@ -33,7 +33,7 @@ def parse_sepa(desc):
     if desc is None:
         print "Error while parsing file"
         return None
-
+#    print "curline: " + desc
     if desc.startswith("/TRTP/SEPA OVERBOEKING") \
             or desc.startswith("/TRTP/SEPA Incasso algemeen doorlopend") \
             or desc.startswith("/TRTP/iDEAL") \
@@ -55,6 +55,12 @@ def parse_sepa(desc):
         else:
             result['name'] = re.findall(".*Naam: (.*)", desc)[0].strip()
             result['description'] = ''
+    elif desc.startswith("SEPA Incasso algemeen doorlopend"):
+        result['name'] = re.findall("Naam: (.*) Machtiging:", desc)[0].strip()
+        if "IBAN:" in desc:
+            result['description'] = re.findall("Omschrijving: (.*)IBAN:", desc)[0].strip()
+        else:
+            result['description'] = re.findall("Omschrijving: (.*)", desc)[0].strip()
     else:
         print "Error while parsing " + desc
         result['name'] = ''
